@@ -27,6 +27,8 @@ class node():
         self.adj_addr_list = []
         self.adj_history_set = set()
         self.recv_data = [None for _ in range(num_conn)]
+        self.last_recv_time = {}
+        self.last_send_time = {}
 
 
 
@@ -58,6 +60,9 @@ class node():
 
     def set_host_list(self, host_addr):
         self.host_addr_list = host_addr
+        for port in host_addr:
+            self.last_recv_time[port[1]] = 0
+            self.last_send_time[port[1]] = 0
         self.access_count = [0 for _ in range(len(self.host_addr_list))]
         while len(self.adj_addr_list) != self.num_conn:
             addr = self.random_adj_addr(exclude_addr=self.adj_addr_list)
@@ -73,8 +78,10 @@ class node():
             if idx < 0:
                 print("Error in make_hello_msg function")
             adj_nodes.append(idx)
-        msg = {"Adjacents" : adj_nodes}
-        msg = json.dumps(msg)
+        msg = {"Message Type" : "HELLO"}
+        msg["Adjacents"] = adj_nodes
+        msg["Node ID"] = self.node_num
+        # msg = json.dumps(msg)
         return msg
 
     def correspond_idx(self, addr, search_list = None):
@@ -112,15 +119,22 @@ class node():
                 adj_addr.append(addr)
             else:
                 host_idx = self.correspond_idx(addr, self.host_addr_list)
+                self.last_recv_time[addr[1]] = self.total_time
                 self.adj_history_set.add(host_idx)
                 self.access_count[host_idx] += 1
 
         self.adj_addr_list = adj_addr
 
     def send_hello(self):
-        for addr in self.adj_addr_list:
-            data = self.make_hello_msg() #return json_object
+        for idx, addr in enumerate(self.adj_addr_list):
+            data = self.make_hello_msg() #return /json_object/ dict
+            data["Address"] = addr
+            data["Last Receive Time"] = self.last_recv_time[addr[1]]
+            data["Last Send Time"] = self.last_send_time[addr[1]]
+            # print(data)
+            data = json.dumps(data)
             data = pickle.dumps(data)
+            self.last_send_time[addr[1]] = self.total_time
             self.hello_sock.sendto(data, addr)
 
 
@@ -257,6 +271,8 @@ if __name__ == "__main__":
 
 
 
+#>>> moshkel dar zaman dare! dorost beshe.
+#>>> report neveshte beshe.
 
 
 
