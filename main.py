@@ -29,6 +29,7 @@ class node():
         self.recv_data = [None for _ in range(num_conn)]
         self.last_recv_time = {}
         self.last_send_time = {}
+        self.num_data_send = {}
 
 
 
@@ -60,9 +61,10 @@ class node():
 
     def set_host_list(self, host_addr):
         self.host_addr_list = host_addr
-        for port in host_addr:
-            self.last_recv_time[port[1]] = 0
-            self.last_send_time[port[1]] = 0
+        for addr in host_addr:
+            self.num_data_send[self.correspond_idx(addr, self.host_addr_list)] = [0, 0]
+            self.last_recv_time[addr[1]] = 0
+            self.last_send_time[addr[1]] = 0
         self.access_count = [0 for _ in range(len(self.host_addr_list))]
         while len(self.adj_addr_list) != self.num_conn:
             addr = self.random_adj_addr(exclude_addr=self.adj_addr_list)
@@ -120,6 +122,7 @@ class node():
             else:
                 host_idx = self.correspond_idx(addr, self.host_addr_list)
                 self.last_recv_time[addr[1]] = self.total_time
+                self.num_data_send[host_idx][1] += 1
                 self.adj_history_set.add(host_idx)
                 self.access_count[host_idx] += 1
 
@@ -127,13 +130,17 @@ class node():
 
     def send_hello(self):
         for idx, addr in enumerate(self.adj_addr_list):
-            data = self.make_hello_msg() #return /json_object/ dict
-            data["Address"] = addr
+            host_idx = self.correspond_idx(addr, self.host_addr_list)
+            data = self.make_hello_msg() #return dict
+            data["Sender Address"] = self.hello_sock.getsockname()
+            data["Receiver Address"] = addr
             data["Last Receive Time"] = self.last_recv_time[addr[1]]
             data["Last Send Time"] = self.last_send_time[addr[1]]
+            # data["Number of Data "]
             # print(data)
             data = json.dumps(data)
             data = pickle.dumps(data)
+            self.num_data_send[host_idx][0] += 1
             self.last_send_time[addr[1]] = self.total_time
             self.hello_sock.sendto(data, addr)
 
@@ -174,6 +181,8 @@ class node():
         print(f"Node Number {self.node_num} simulation finished")
         f = open(f'Node_{node_num}.json', 'w')
         stat = {"Adjacent Nodes History": list(self.adj_history_set)}
+
+        stat.update({"Adjacent Nodes Data Send/Receive Number": self.num_data_send})
 
         tmp = []
         for i, adj_addr in enumerate(self.adj_addr_list):
