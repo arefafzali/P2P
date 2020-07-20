@@ -121,7 +121,7 @@ class node():
                 adj_addr.append(addr)
             else:
                 host_idx = self.correspond_idx(addr, self.host_addr_list)
-                self.last_recv_time[addr[1]] = self.total_time
+                self.last_recv_time[addr[1]] = self.total_time * 8
                 self.num_data_send[host_idx][1] += 1
                 self.adj_history_set.add(host_idx)
                 self.access_count[host_idx] += 1
@@ -137,11 +137,11 @@ class node():
             data["Last Receive Time"] = self.last_recv_time[addr[1]]
             data["Last Send Time"] = self.last_send_time[addr[1]]
             # data["Number of Data "]
-            # print(data)
+            print(data)
             data = json.dumps(data)
             data = pickle.dumps(data)
             self.num_data_send[host_idx][0] += 1
-            self.last_send_time[addr[1]] = self.total_time
+            self.last_send_time[addr[1]] = self.total_time * 8
             self.hello_sock.sendto(data, addr)
 
 
